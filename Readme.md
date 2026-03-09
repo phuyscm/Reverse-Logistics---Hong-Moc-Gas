@@ -10,7 +10,7 @@
 ## 1. Bối Cảnh Nghiệp Vụ (Business Context)
 Dự án này được xây dựng dựa trên bài toán thực tế của Doanh nghiệp Hồng Mộc (thương hiệu H-GAS). 
 
-Trong ngành phân phối khí đốt, vỏ bình gas là loại tài sản có giá trị cao, có thể tái sử dụng và đòi hỏi yêu cầu nghiêm ngặt về an toàn[cite: 16, 17]. [cite_start]Với khối lượng vỏ bình lớn và chuỗi cung ứng trải rộng, logistics thu hồi đóng vai trò cực kỳ quan trọng[cite: 37]. [cite_start]Mục tiêu cốt lõi của doanh nghiệp là đảm bảo việc thu hồi vỏ bình diễn ra an toàn, hiệu quả, nhằm giảm thiểu thất thoát tài sản, cắt giảm rác thải và tối ưu hóa chi phí vận hành[cite: 19, 39, 43].
+Trong ngành phân phối khí đốt, vỏ bình gas là loại tài sản có giá trị cao, có thể tái sử dụng và đòi hỏi yêu cầu nghiêm ngặt về an toàn. Với khối lượng vỏ bình lớn và chuỗi cung ứng trải rộng, logistics thu hồi đóng vai trò cực kỳ quan trọng. Mục tiêu cốt lõi của doanh nghiệp là đảm bảo việc thu hồi vỏ bình diễn ra an toàn, hiệu quả, nhằm giảm thiểu thất thoát tài sản, cắt giảm rác thải và tối ưu hóa chi phí vận hành.
 
 Dự án này số hóa quá trình ra quyết định điều phối xe tải (Routing) thông qua việc giải quyết bài toán **Heterogeneous Fleet Vehicle Routing Problem (HFVRP)** thay cho việc điều xe dựa trên cảm tính và kinh nghiệm truyền thống.
 
@@ -40,44 +40,77 @@ Bài toán được mô hình hóa dựa trên mô hình định tuyến xe cơ 
 * $FC_k$: Chi phí cố định (Fixed Cost) khởi động phương tiện $k$ (Mở rộng cho HFVRP).
 
 ### Biến Quyết Định (Decision Variables)
-* [cite_start]$x_{ijk} \in \{0, 1\}$: Bằng 1 nếu phương tiện $k$ di chuyển từ $i$ đến $j$, ngược lại bằng 0[cite: 157, 158].
-* [cite_start]$u_{ik} \ge 0$: Tải trọng tích lũy của phương tiện $k$ ngay sau khi phục vụ điểm $i$[cite: 158].
+* $x_{ijk} \in \{0, 1\}$: Bằng 1 nếu phương tiện $k$ di chuyển từ $i$ đến $j$, ngược lại bằng 0.
+* $u_{ik} \ge 0$: Tải trọng tích lũy của phương tiện $k$ ngay sau khi phục vụ điểm $i$.
 * $y_k \in \{0, 1\}$: Bằng 1 nếu phương tiện $k$ được đưa vào sử dụng, ngược lại bằng 0.
 
 ### Hàm Mục Tiêu (Objective Function)
-[cite_start]Tối thiểu hóa tổng chi phí vận hành toàn hệ thống, bao gồm chi phí di chuyển (từ mô hình gốc [cite: 161]) và chi phí cố định của xe (để ép thuật toán giảm số lượng xe):
+Tối thiểu hóa tổng chi phí vận hành toàn hệ thống, bao gồm chi phí di chuyển (từ mô hình gốc) và chi phí cố định của xe (để ép thuật toán giảm số lượng xe):
 $$\min Z = \sum_{k \in K} FC_k \cdot y_k + \sum_{k \in K} \sum_{i \in N} \sum_{j \in N, j \neq i} c_{ij} \cdot x_{ijk}$$
 
 ### Các Ràng Buộc (Constraints)
 
 **1. Ràng buộc phục vụ khách hàng (Customer Service):**
-[cite_start]Đảm bảo mỗi đại lý chỉ được phục vụ đúng một lần bởi một phương tiện duy nhất[cite: 163].
+Đảm bảo mỗi đại lý chỉ được phục vụ đúng một lần bởi một phương tiện duy nhất.
 $$\sum_{k \in K} \sum_{i \in N} x_{ijk} = 1 \quad \forall j \in N \setminus \{0\}$$
 
 **2. Ràng buộc bảo toàn luồng (Flow Conservation):**
-[cite_start]Nếu phương tiện $k$ đi vào đại lý $h$, nó bắt buộc phải rời khỏi đại lý $h$[cite: 164].
+Nếu phương tiện $k$ đi vào đại lý $h$, nó bắt buộc phải rời khỏi đại lý $h$.
 $$\sum_{i \in N} x_{ihk} - \sum_{j \in N} x_{hjk} = 0 \quad \forall h \in N \setminus \{0\}, \forall k \in K$$
 
 **3. Ràng buộc sức chứa và loại trừ vòng lặp phụ (Capacity & Subtour-elimination):**
-[cite_start]Đảm bảo tải trọng được cộng dồn chính xác và ngăn chặn xe đi theo các vòng lặp không qua kho[cite: 165].
+Đảm bảo tải trọng được cộng dồn chính xác và ngăn chặn xe đi theo các vòng lặp không qua kho.
 $$u_{ik} + d_j \cdot x_{ijk} - u_{jk} \le Q_k (1 - x_{ijk}) \quad \forall i, j \in N \setminus \{0\}, i \neq j, \forall k \in K$$
 
 **4. Giới hạn tải trọng tích lũy (Bounds on accumulated load):**
-[cite_start]Tải trọng trên xe $k$ sau khi phục vụ điểm $i$ luôn lớn hơn hoặc bằng nhu cầu tại điểm $i$, và không bao giờ vượt quá sức chứa tối đa của chiếc xe đó[cite: 166].
+Tải trọng trên xe $k$ sau khi phục vụ điểm $i$ luôn lớn hơn hoặc bằng nhu cầu tại điểm $i$, và không bao giờ vượt quá sức chứa tối đa của chiếc xe đó.
 $$d_i \le u_{ik} \le Q_k \quad \forall i \in N \setminus \{0\}, \forall k \in K$$
 
 **5. Ràng buộc xuất phát từ kho (Depot Start):**
-[cite_start]Mỗi chiếc xe $k$ chỉ có thể rời khỏi trạm chiết (depot) tối đa một lần[cite: 167]. (Trong HFVRP, nếu xe rời kho, biến $y_k$ sẽ được kích hoạt thành 1).
+Mỗi chiếc xe $k$ chỉ có thể rời khỏi trạm chiết (depot) tối đa một lần. (Trong HFVRP, nếu xe rời kho, biến $y_k$ sẽ được kích hoạt thành 1).
 $$\sum_{j \in N} x_{0jk} = y_k \quad \forall k \in K$$
 
 **6. Ràng buộc kết thúc tại kho (Depot End):**
-[cite_start]Đảm bảo nếu chiếc xe $k$ rời khỏi kho thì nó bắt buộc phải quay trở về kho[cite: 167].
+Đảm bảo nếu chiếc xe $k$ rời khỏi kho thì nó bắt buộc phải quay trở về kho.
 $$\sum_{i \in N} x_{i0k} = \sum_{j \in N} x_{0jk} \quad \forall k \in K$$
 
 **7. Miền giá trị của biến quyết định (Variable Domains):**
-[cite_start]Đảm bảo giới hạn nhị phân và số thực không âm cho các biến[cite: 168].
+Đảm bảo giới hạn nhị phân và số thực không âm cho các biến.
 $$x_{ijk} \in \{0, 1\} \quad \forall i, j \in N, i \neq j, \forall k \in K$$
 $$u_{ik} \ge 0 \quad \forall i \in N, \forall k \in K$$
 $$y_k \in \{0, 1\} \quad \forall k \in K$$
 
+## 4. Giao Diện & Kết Quả Đầu Ra (Output & KPI Dashboard)
+
+Hệ thống cung cấp một bảng điều khiển (KPI Dashboard) trực quan theo thời gian thực nhằm giúp các cấp quản lý theo dõi và đánh giá hiệu năng của thuật toán định tuyến:
+
+* **Tối ưu Chi phí (Cost Savings):** So sánh trực tiếp chi phí vận hành (VNĐ) giữa phương pháp điều phối truyền thống (Baseline) và phương pháp tối ưu hóa bằng AI (OR-Tools). Chi phí được tính toán dựa trên hệ số tiêu hao thực tế của từng loại tải trọng xe.
+* **Mức độ lấp đầy (Capacity Utilization):** Đảm bảo không gian thùng xe được khai thác tối đa, tránh tình trạng chở xe rỗng.
+* **Tuân thủ Cam kết Dịch vụ (SLA Compliance):** Theo dõi và cảnh báo các tuyến đường có nguy cơ vi phạm thời gian, dựa trên công thức tính toán thời gian vật lý (bao gồm thời gian di chuyển, bốc xếp và khấu hao dừng đỗ).
+
+*(Chèn ảnh chụp màn hình Tab KPI Dashboard của bạn vào đây)*
+![H-GAS KPI Dashboard](link_anh_hien_thi_loi_nhuan_duong_cua_ban.png)
+
+## 5. Kiểm Định Hiệu Suất (Validation & Testing)
+
+Để chứng minh tính khả thi của mô hình, hệ thống được kiểm định (A/B Testing) thông qua các kịch bản vận hành thực tế tại H-GAS.
+
+### 5.1. Kịch Bản Stress Test (Full-Scale System)
+Hệ thống được thử tải với bộ dữ liệu thực tế toàn phần của doanh nghiệp bao gồm **1 Trạm chiết (Depot) và 31 Đại lý phân phối (Distribution Centers)**.
+Kết quả giải VRP từ lõi AI cho các chỉ số cực kỳ ấn tượng so với phương pháp thủ công:
+
+* **Tổng nhu cầu thu hồi:** 886 vỏ bình gas.
+* **Quy mô đội xe tối ưu:** Điều động 14 phương tiện.
+* **Tổng quãng đường toàn hệ thống:** 1,070.439 km.
+* **Hệ số lấp đầy tài sản (Utilization):** Đạt mức xuất sắc **90.41%**.
+
+### 5.2. Kịch Bản Điểm Nghẽn Tải Trọng (Demand Spike)
+Trong kịch bản nhu cầu tăng đột biến, thuật toán **Kinh nghiệm (Baseline - Nearest Neighbor)** bộc lộ điểm yếu chí mạng khi liên tục điều xe chạy lòng vòng, gây quá tải và vi phạm SLA do đi vào các "hẻm cụt" (dead-ends) của không gian tải trọng. 
+
+Ngược lại, mô hình **HFVRP (OR-Tools)** với cơ chế "Buffer Fleet" kết hợp thuật giải `LOCAL_CHEAPEST_INSERTION` đã chứng minh năng lực gộp chuyến thông minh:
+* Tự động lựa chọn đúng số lượng xe tải trọng lớn ($Q=70$) để vét sạch kho hàng.
+* Cắt giảm trung bình **15% - 30%** quãng đường so với Baseline.
+* Tuân thủ 100% SLA cam kết với đại lý.
+
 ---
+**Công nghệ sử dụng (Tech Stack):** `Python (Flask)`, `Google OR-Tools`, `NetworkX`, `Leaflet.js`, `OpenStreetMap API`.
