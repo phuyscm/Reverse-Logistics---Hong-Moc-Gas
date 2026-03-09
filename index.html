@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>H-GAS Reverse Logistics</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-ant-path@1.3.0/dist/leaflet-ant-path.js"></script>
+    <style>
+        :root { --primary: #2ea44f; --danger: #cb2431; --bg-milky: rgba(253, 253, 255, 0.96); --border: #e1e4e8; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; background: #f6f8fa; }
+        #map { height: 100vh; width: 100vw; z-index: 1; }
+        
+        #floating-panel {
+            position: absolute; top: 50%; left: 30px; transform: translateY(-50%);
+            width: 460px; background: var(--bg-milky); border-radius: 12px;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.2); z-index: 1000;
+            display: flex; flex-direction: column; border: 1px solid rgba(255,255,255,0.8);
+            backdrop-filter: blur(8px); max-height: 90vh;
+        }
+
+        #panel-header {
+            padding: 15px; background: linear-gradient(180deg, #fff 0%, #f5f5f5 100%);
+            border-bottom: 1px solid var(--border); border-radius: 12px 12px 0 0;
+            cursor: grab; display: flex; justify-content: space-between; align-items: center;
+        }
+        #panel-header h3 { margin: 0; font-size: 16px; color: #24292e; }
+        
+        #panel-body { padding: 15px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+
+        .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid var(--border); }
+        .input-group label { font-size: 10px; font-weight: bold; color: #586069; display: block; margin-bottom: 4px; }
+        .input-group input { width: 100%; padding: 6px; border: 1px solid #d1d5da; border-radius: 4px; font-weight: bold; box-sizing: border-box; }
+
+        .fleet-advisor { background: #eaf5eb; border: 1px solid #b4e1c1; padding: 10px; border-radius: 8px; }
+        .fleet-advisor h4 { margin: 0 0 5px; color: #2ea44f; font-size: 12px; text-transform: uppercase; }
+        .fleet-info { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; color: #24292e; }
+
+        .tabs { display: flex; border-bottom: 2px solid var(--border); margin-top: 5px; }
+        .tab-btn { flex: 1; padding: 8px 0; background: none; border: none; font-size: 12px; font-weight: bold; color: #586069; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tab-content { display: none; padding-top: 10px; }
+        .tab-content.active { display: block; }
+
+        .excel-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .excel-table th, .excel-table td { border: 1px solid var(--border); padding: 6px; }
+        .excel-table th { background: #f6f8fa; color: #586069; font-size: 11px; }
+        .demand-input { width: 50px; border: none; text-align: center; font-weight: bold; background: transparent; }
+        .btn-remove { float: right; background: var(--danger); color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 10px; padding: 2px 6px; }
+        
+        .route-card { background: #fff; border: 1px solid var(--border); border-left: 4px solid var(--c); border-radius: 6px; padding: 10px; margin-bottom: 10px; font-size: 12px; }
+        .sla-alert { background: #ffeef0; color: #cb2431; padding: 5px; border-radius: 4px; font-weight: bold; font-size: 11px; margin-top: 5px; display: inline-block; }
+        .sla-ok { background: #eaf5eb; color: #2ea44f; padding: 5px; border-radius: 4px; font-weight: bold; font-size: 11px; margin-top: 5px; display: inline-block; }
+
+        /* KPI DASHBOARD STYLES */
+        .kpi-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .kpi-box { background: #fff; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .kpi-title { font-size: 10px; font-weight: bold; color: #586069; text-transform: uppercase; margin-bottom: 5px; }
+        .kpi-value { font-size: 20px; font-weight: 900; }
+        
+        .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .compare-card { padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: #fff; }
+
+        .actions { display: flex; gap: 10px; margin-top: 5px; }
+        .btn-main { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; transition: 0.2s; }
+        .btn-opt { background: var(--primary); color: white; }
+        .btn-opt:hover { background: #22863a; }
+        .btn-reset { background: #fafbfc; border: 1px solid var(--border); }
+        .big-label { background: #fff; border: 2px solid #000; color: #000; font-size: 14px; font-weight: 900; border-radius: 50%; width: 24px; height: 24px; line-height: 20px; text-align: center; }
+        .custom-icon { display: flex; align-items: center; justify-content: center; border-radius: 50%; box-shadow: 0 3px 6px rgba(0,0,0,0.4); border: 2px solid white; font-size: 18px; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div id="floating-panel">
+        <div id="panel-header">
+            <h3>🚚 H-GAS HFVRP OPTIMIZER</h3>
+        </div>
+        
+        <div id="panel-body">
+            <div class="fleet-advisor">
+                <h4>ĐỀ XUẤT ĐỘI XE TỐI ƯU</h4>
+                <div class="fleet-info">
+                    <span id="total-demand-label">Tổng nhu cầu: 0 vỏ</span>
+                    <span id="fleet-plan-label">Đang chờ dữ liệu...</span>
+                </div>
+            </div>
+
+            <div class="config-grid">
+                <div class="input-group"><label>ĐƠN GIÁ CƠ SỞ (VNĐ/KM)</label><input type="number" id="unit-price" value="3000"></div>
+                <div class="input-group"><label>SLA LIMIT (PHÚT/CHUYẾN)</label><input type="number" id="sla-limit" value="120"></div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('tab-points', this)">📍 ĐỊA ĐIỂM</button>
+                <button class="tab-btn" onclick="switchTab('tab-routes', this)">🛣️ LỘ TRÌNH</button>
+                <button class="tab-btn" onclick="switchTab('tab-stats', this)">📊 KPI DASHBOARD</button>
+            </div>
+
+            <div id="tab-points" class="tab-content active">
+                <table class="excel-table">
+                    <thead><tr><th>Tên Địa Chỉ</th><th style="width: 60px;">Vỏ</th></tr></thead>
+                    <tbody id="points-list"><tr><td colspan="2" style="text-align:center;">Click đúp bản đồ để thêm...</td></tr></tbody>
+                </table>
+                <button style="width:100%; margin-top:10px; padding:8px; background:#fff3cd; border:1px solid #ffeeba; border-radius:4px; cursor:pointer; font-weight:bold;" onclick="loadDemoData()">🎲 NẠP DỮ LIỆU MẪU QUẬN 12</button>
+            </div>
+
+            <div id="tab-routes" class="tab-content"><div id="routes-container" style="text-align:center; color:#888;">Chưa có dữ liệu.</div></div>
+            <div id="tab-stats" class="tab-content"><div id="stats-container" style="text-align:center; color:#888;">Chưa có dữ liệu.</div></div>
+
+            <div class="actions">
+                <button class="btn-main btn-opt" id="btn-optimize">🚀 CHẠY AI TỐI ƯU</button>
+                <button class="btn-main btn-reset" onclick="location.reload()">LÀM MỚI</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const map = L.map('map', { doubleClickZoom: false }).setView([10.8333, 106.6333], 13);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+
+        let points = [], mapLayers = [];
+        const routeColors = ['#2ea44f', '#0366d6', '#ea4a5a', '#f66a0a', '#6f42c1'];
+        let currentFleet = [];
+
+        const depotIcon = L.divIcon({ html: '<div class="custom-icon" style="background:#cb2431; width:34px; height:34px;">🏭</div>', className: '', iconSize: [38, 38], iconAnchor: [19, 38] });
+        const gasIcon = L.divIcon({ html: '<div class="custom-icon" style="background:#0366d6; width:34px; height:34px;">🛢️</div>', className: '', iconSize: [38, 38], iconAnchor: [19, 38] });
+
+        const panel = document.getElementById("floating-panel"), header = document.getElementById("panel-header");
+        let isDragging = false, startX, startY, initX, initY;
+        header.onmousedown = e => {
+            isDragging = true; startX = e.clientX; startY = e.clientY;
+            panel.style.transform = "none"; panel.style.left = panel.offsetLeft + "px"; panel.style.top = panel.offsetTop + "px";
+            initX = panel.offsetLeft; initY = panel.offsetTop;
+            document.onmousemove = ev => { if (isDragging) { panel.style.left = (initX + ev.clientX - startX) + "px"; panel.style.top = (initY + ev.clientY - startY) + "px"; } };
+            document.onmouseup = () => { isDragging = false; document.onmousemove = null; };
+        };
+
+        function switchTab(id, btn) {
+            document.querySelectorAll('.tab-content, .tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active'); btn.classList.add('active');
+        }
+
+        function calculateFleet() {
+            let totalDemand = points.reduce((sum, p) => sum + p.demand, 0);
+            document.getElementById('total-demand-label').innerText = `Tổng nhu cầu: ${totalDemand} vỏ`;
+            if (totalDemand === 0) { document.getElementById('fleet-plan-label').innerText = "Chưa cần xe"; currentFleet = []; return; }
+
+            let bestWaste = Infinity, bestPlan = { large: 0, small: 0 };
+            for (let large = 0; large <= Math.ceil(totalDemand / 70); large++) {
+                let rem = totalDemand - large * 70;
+                let small = rem > 0 ? Math.ceil(rem / 50) : 0;
+                let capacity = large * 70 + small * 50;
+                let waste = capacity - totalDemand;
+                if (waste < bestWaste) { bestWaste = waste; bestPlan = { large, small }; }
+            }
+
+            currentFleet = [];
+            for (let i=0; i<bestPlan.large; i++) currentFleet.push(70);
+            for (let i=0; i<bestPlan.small; i++) currentFleet.push(50);
+
+            let planText = [];
+            if (bestPlan.large > 0) planText.push(`${bestPlan.large} xe Lớn(70)`);
+            if (bestPlan.small > 0) planText.push(`${bestPlan.small} xe Nhỏ(50)`);
+            document.getElementById('fleet-plan-label').innerText = planText.join(" + ");
+        }
+
+        function addPoint(latlng, addr, demand = 20) {
+            const isDepot = points.length === 0;
+            const marker = L.marker(latlng, { icon: isDepot ? depotIcon : gasIcon }).addTo(map);
+            points.push({ latlng, addr, marker, demand: isDepot ? 0 : demand });
+            renderPointsTable();
+        }
+
+        function removePoint(i) { 
+            map.removeLayer(points[i].marker); points.splice(i, 1); 
+            if (points.length > 0) { points[0].demand = 0; points[0].marker.setIcon(depotIcon); }
+            renderPointsTable(); 
+        }
+
+        function updateDemand(i, v) { if(points[i]) points[i].demand = parseInt(v) || 0; calculateFleet(); }
+
+        function renderPointsTable() {
+            const tbody = document.getElementById('points-list');
+            calculateFleet(); 
+            if(points.length === 0) return tbody.innerHTML = `<tr><td colspan="2" style="text-align:center;">Click đúp bản đồ để thêm...</td></tr>`;
+            
+            tbody.innerHTML = points.map((p, i) => `<tr>
+                <td>
+                    ${i === 0 ? '<span style="color:#cb2431; font-weight:900; background:#ffeef0; padding:2px 4px; border-radius:3px;">[KHO]</span>' : ''} 
+                    <span style="display:inline-block; max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle;" title="${p.addr}">${p.addr}</span>
+                    <button class="btn-remove" onclick="removePoint(${i})" title="Xóa điểm này">X</button>
+                </td>
+                <td><input type="number" class="demand-input" value="${p.demand}" ${i===0?'disabled':''} onchange="updateDemand(${i}, this.value)"></td>
+            </tr>`).join('');
+        }
+
+        map.on('dblclick', async e => {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
+            const data = await res.json();
+            addPoint(e.latlng, data.display_name.split(',').slice(0, 2).join(', '));
+        });
+
+        function loadDemoData() {
+            points.forEach(p => map.removeLayer(p.marker)); points = [];
+            addPoint({lat: 10.849, lng: 106.634}, "Trạm Chiết Lê Văn Khương"); 
+            addPoint({lat: 10.828, lng: 106.621}, "Đại lý Nguyễn Ảnh Thủ", 40);
+            addPoint({lat: 10.852, lng: 106.657}, "Đại lý Hà Huy Giáp", 25);
+            addPoint({lat: 10.865, lng: 106.641}, "Đại lý Thạnh Lộc", 30);
+            addPoint({lat: 10.811, lng: 106.618}, "Đại lý Trường Chinh", 10);
+            map.setView([10.840, 106.635], 13);
+        }
+
+        document.getElementById('btn-optimize').onclick = async function() {
+            if (points.length < 2) return alert("Cần tối thiểu 1 Kho và 1 Đại lý!");
+            if (currentFleet.length === 0) return alert("Nhu cầu đang bằng 0!");
+            
+            const unitPrice = parseInt(document.getElementById('unit-price').value) || 3000;
+            const slaLimit = parseInt(document.getElementById('sla-limit').value) || 300;
+            const velocityKmH = 30; // Vận tốc giả định
+
+            // SLA BLOCKER LOGIC
+            let maxDist = 0;
+            let totalDemand = 0;
+            for(let i=1; i<points.length; i++) {
+                let dist = map.distance(points[0].latlng, points[i].latlng);
+                if (dist > maxDist) maxDist = dist;
+                totalDemand += points[i].demand;
+            }
+            let minTravelTimeMins = (maxDist * 2 / 1000) / velocityKmH * 60;
+            let handlingTimeMins = totalDemand * 0.5;
+            let bufferTimeMins = (points.length - 1) * 15;
+            let slaMinRequired = Math.ceil(minTravelTimeMins + handlingTimeMins + bufferTimeMins);
+
+            if (slaLimit < slaMinRequired) {
+                alert(`🛑 CẢNH BÁO VẬT LÝ: Không thể đáp ứng SLA!\n\nThời gian di chuyển tối thiểu: ~${Math.round(minTravelTimeMins)}p\nThời gian bốc xếp: ${handlingTimeMins}p\nKhấu hao dừng đỗ: ${bufferTimeMins}p\n\nSLA TỐI THIỂU CẦN THIẾT: ${slaMinRequired} phút.\nVui lòng nới lỏng SLA Limit để tiếp tục.`);
+                return;
+            }
+
+            this.innerHTML = "⏳ ĐANG XỬ LÝ AI..."; this.disabled = true;
+
+            try {
+                const res = await fetch('/optimize', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        points: points.map(p => [p.latlng.lat, p.latlng.lng]),
+                        addresses: points.map(p => p.addr),
+                        fleet: currentFleet, 
+                        demands: points.map(p => p.demand),
+                        velocity: velocityKmH
+                    })
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    mapLayers.forEach(l => map.removeLayer(l)); mapLayers = [];
+                    points.forEach(p => p.marker.unbindTooltip());
+
+                    let htmlRoutes = '';
+                    let vehiclesMetSLA = 0;
+                    let totalSystemCapacity = 0;
+
+                    // Tính toán chi phí thực tế (có hệ số 1.2 cho xe lớn)
+                    let calculateCost = (distance, capacity) => {
+                        let multiplier = capacity === 70 ? 1.2 : 1.0;
+                        return distance * unitPrice * multiplier;
+                    };
+
+                    let totalCostAI = 0;
+
+                    data.vehicles.forEach((v, i) => {
+                        const color = routeColors[i % routeColors.length];
+                        totalSystemCapacity += v.capacity;
+                        totalCostAI += calculateCost(v.distance_km, v.capacity);
+                        
+                        if (v.time_mins <= slaLimit) vehiclesMetSLA++;
+                        
+                        const slaCheck = v.time_mins > slaLimit 
+                            ? `<div class="sla-alert">⚠️ Trễ SLA (${v.time_mins}p > ${slaLimit}p)</div>` 
+                            : `<div class="sla-ok">✅ Đạt SLA (${v.time_mins}p)</div>`;
+
+                        htmlRoutes += `<div class="route-card" style="--c: ${color}">
+                            <div style="font-weight:bold; color:${color}; margin-bottom: 5px;">🚛 XE ${v.vehicle_id} (Q=${v.capacity})</div>
+                            <div style="color:#586069; font-size: 11px;">Tải: ${v.load}/${v.capacity} | Quãng đường: ${v.distance_km} km</div>
+                            ${slaCheck}
+                            <div style="margin-top: 8px;">`;
+                        
+                        v.segments.forEach(seg => mapLayers.push(L.polyline.antPath(seg, { color: color, weight: 5 }).addTo(map)));
+                        v.itinerary.forEach(step => htmlRoutes += `<div style="padding: 3px 0; border-top: 1px dashed #e1e4e8; font-size:11px;">• ${step.to_addr}</div>`);
+                        htmlRoutes += `</div></div>`;
+
+                        v.order.forEach((ptIdx, seqIdx) => { if (seqIdx < v.order.length - 1 && ptIdx !== 0) points[ptIdx].marker.bindTooltip(seqIdx.toString(), { permanent: true, className: 'big-label' }).openTooltip(); });
+                    });
+
+                    document.getElementById('routes-container').innerHTML = htmlRoutes;
+
+                    // TÍNH TOÁN KPI DASHBOARD
+                    let utilizationRate = Math.round((totalDemand / totalSystemCapacity) * 100) || 0;
+                    let slaRate = Math.round((vehiclesMetSLA / data.ai_vehicles_used) * 100) || 0;
+                    
+                    // Giả lập chi phí Baseline (Nếu Baseline dùng toàn xe 70 để đi cho khỏe)
+                    let totalCostBase = data.base_km * unitPrice * 1.2; 
+                    let savedCostNum = totalCostBase - totalCostAI;
+                    let sign = savedCostNum >= 0 ? "+" : "";
+                    let colorSaved = savedCostNum >= 0 ? "#2ea44f" : "#cb2431";
+
+                    document.getElementById('stats-container').innerHTML = `
+                        <div class="kpi-row">
+                            <div class="kpi-box">
+                                <div class="kpi-title">MỨC ĐỘ LẤP ĐẦY</div>
+                                <div class="kpi-value" style="color: ${utilizationRate >= 85 ? '#2ea44f' : '#f66a0a'}">${utilizationRate}%</div>
+                            </div>
+                            <div class="kpi-box">
+                                <div class="kpi-title">TUÂN THỦ SLA</div>
+                                <div class="kpi-value" style="color: ${slaRate === 100 ? '#2ea44f' : '#cb2431'}">${slaRate}%</div>
+                            </div>
+                        </div>
+
+                        <div class="kpi-box" style="margin-bottom: 10px; border-color: ${colorSaved}; background: ${savedCostNum >= 0 ? '#eaf5eb' : '#ffeef0'};">
+                            <div class="kpi-title" style="color:${colorSaved};">LỢI NHUẬN TỐI ƯU HÓA</div>
+                            <div class="kpi-value" style="color:${colorSaved};">${sign}${Math.round(savedCostNum).toLocaleString('vi-VN')} VNĐ</div>
+                        </div>
+
+                        <div class="compare-grid">
+                            <div class="compare-card">
+                                <div style="font-size:10px; font-weight:bold; color:#586069;">BASELINE (KINH NGHIỆM)</div>
+                                <h3 style="margin:5px 0;">${data.base_km} km</h3>
+                                <div style="font-size:11px;">Xe dự kiến: <b>${data.base_vehicles} chiếc</b></div>
+                                <div style="font-size:12px; color:#cb2431; font-weight:bold; margin-top:5px;">~${Math.round(totalCostBase).toLocaleString('vi-VN')} đ</div>
+                            </div>
+                            <div class="compare-card" style="border-color:#2ea44f;">
+                                <div style="font-size:10px; font-weight:bold; color:#2ea44f;">OR-TOOLS AI</div>
+                                <h3 style="margin:5px 0; color:#2ea44f;">${data.total_sys_km} km</h3>
+                                <div style="font-size:11px;">Xe chốt thực tế: <b>${data.ai_vehicles_used} chiếc</b></div>
+                                <div style="font-size:12px; color:#2ea44f; font-weight:bold; margin-top:5px;">${Math.round(totalCostAI).toLocaleString('vi-VN')} đ</div>
+                            </div>
+                        </div>
+                        <div style="font-size:9px; color:#888; text-align:justify; margin-top:10px;">
+                            * Chi phí AI tính toán theo hệ số tiêu hao thực tế (Xe Q=70 cước cao hơn 20% so với Q=50). SLA được tính cộng thêm 0.5 phút bốc xếp/vỏ và 15 phút đậu xe/trạm.
+                        </div>
+                    `;
+
+                    map.fitBounds(mapLayers[0].getBounds());
+                    switchTab('tab-stats', document.querySelectorAll('.tab-btn')[2]);
+                } else alert("Lỗi Solver: " + data.message);
+            } catch (e) { alert("Lỗi kết nối Server!"); }
+            this.innerHTML = "🚀 CHẠY AI TỐI ƯU"; this.disabled = false;
+        };
+    </script>
+</body>
+</html>
