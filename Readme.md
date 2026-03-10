@@ -82,35 +82,44 @@ $$y_k \in \{0, 1\} \quad \forall k \in K$$
 
 ## 4. Giao Diện & Kết Quả Đầu Ra (Output & KPI Dashboard)
 
-Hệ thống cung cấp một bảng điều khiển (KPI Dashboard) trực quan theo thời gian thực nhằm giúp các cấp quản lý theo dõi và đánh giá hiệu năng của thuật toán định tuyến:
+Hệ thống cung cấp một bảng điều khiển (KPI Dashboard) trực quan theo thời gian thực nhằm giúp các cấp quản lý theo dõi và đánh giá hiệu năng của thuật toán định tuyến so với phương pháp thủ công:
 
-* **Tối ưu Chi phí (Cost Savings):** So sánh trực tiếp chi phí vận hành (VNĐ) giữa phương pháp điều phối truyền thống (Baseline) và phương pháp tối ưu hóa bằng AI (OR-Tools). Chi phí được tính toán dựa trên hệ số tiêu hao thực tế của từng loại tải trọng xe.
-* **Mức độ lấp đầy (Capacity Utilization):** Đảm bảo không gian thùng xe được khai thác tối đa, tránh tình trạng chở xe rỗng.
-* **Tuân thủ Cam kết Dịch vụ (SLA Compliance):** Theo dõi và cảnh báo các tuyến đường có nguy cơ vi phạm thời gian, dựa trên công thức tính toán thời gian vật lý (bao gồm thời gian di chuyển, bốc xếp và khấu hao dừng đỗ).
+* **Tối ưu Chi phí (Cost Savings):** Hệ thống tự động quy đổi quãng đường và loại xe ra chi phí thực tế (VNĐ). Các xe tải trọng lớn ($Q=70$) được tính hệ số cước hao phí cao hơn 20% so với xe nhỏ ($Q=50$) để phản ánh đúng thực tế vận hành.
+* **Mức độ lấp đầy (Capacity Utilization):** Chỉ số cho biết không gian thùng xe được khai thác hiệu quả đến mức nào, giảm thiểu tối đa tình trạng xe chạy rỗng.
+* **Tuân thủ Cam kết Dịch vụ (SLA Compliance):** Theo dõi và cảnh báo các tuyến đường có nguy cơ vi phạm thời gian, dựa trên công thức tính toán thời gian vật lý (bao gồm: thời gian di chuyển + $0.5$ phút bốc xếp/vỏ + $15$ phút chờ/trạm).
 
-*(Chèn ảnh chụp màn hình Tab KPI Dashboard của bạn vào đây)*
-![H-GAS KPI Dashboard](link_anh_hien_thi_loi_nhuan_duong_cua_ban.png)
+**Giao diện Bản đồ Định tuyến (Routing Map):**
+<img width="1919" height="912" alt="Screenshot 2026-03-10 073159" src="https://github.com/user-attachments/assets/c83798fd-f00c-4dfe-a7c1-c448092bb2d6" />
+
+*Bản đồ hiển thị mạng lưới 31 đại lý tại khu vực TP.HCM và các tuyến đường thực tế được AI (OR-Tools) phân bổ để thu hồi vỏ bình gas.*
+
+**Bảng Điều Khiển (KPI Dashboard):**
+
+<img width="417" height="602" alt="Screenshot 2026-03-10 073420" src="https://github.com/user-attachments/assets/0a73d61e-af09-4930-8439-06898de5c9b2" />
+
+*Báo cáo A/B Testing chứng minh sự vượt trội của mô hình Toán học so với Kinh nghiệm điều phối truyền thống.*
 
 ## 5. Kiểm Định Hiệu Suất (Validation & Testing)
 
-Để chứng minh tính khả thi của mô hình, hệ thống được kiểm định (A/B Testing) thông qua các kịch bản vận hành thực tế tại H-GAS.
+Hệ thống được thử tải (Stress Test) với bộ dữ liệu toàn phần thực tế của H-GAS bao gồm **1 Trạm chiết trung tâm (Depot) và 31 Đại lý phân phối (Distribution Centers)** trải rộng khắp TP.HCM. 
 
-### 5.1. Kịch Bản Stress Test (Full-Scale System)
-Hệ thống được thử tải với bộ dữ liệu thực tế toàn phần của doanh nghiệp bao gồm **1 Trạm chiết (Depot) và 31 Đại lý phân phối (Distribution Centers)**.
-Kết quả giải VRP từ lõi AI cho các chỉ số cực kỳ ấn tượng so với phương pháp thủ công:
+Tổng nhu cầu thu hồi trong một chu kỳ là **886 vỏ bình**. Đội xe được hệ thống (Fleet Sizing) tự động hoạch định bao gồm 2 xe Lớn ($Q=70$) và 15 xe Nhỏ ($Q=50$).
 
-* **Tổng nhu cầu thu hồi:** 886 vỏ bình gas.
-* **Quy mô đội xe tối ưu:** Điều động 14 phương tiện.
-* **Tổng quãng đường toàn hệ thống:** 1,070.439 km.
-* **Hệ số lấp đầy tài sản (Utilization):** Đạt mức xuất sắc **90.41%**.
+Kết quả đối chiếu giữa phương pháp điều phối Heuristic truyền thống (Baseline) và Tối ưu hóa bằng AI (OR-Tools) mang lại các chỉ số vượt kỳ vọng:
 
-### 5.2. Kịch Bản Điểm Nghẽn Tải Trọng (Demand Spike)
-Trong kịch bản nhu cầu tăng đột biến, thuật toán **Kinh nghiệm (Baseline - Nearest Neighbor)** bộc lộ điểm yếu chí mạng khi liên tục điều xe chạy lòng vòng, gây quá tải và vi phạm SLA do đi vào các "hẻm cụt" (dead-ends) của không gian tải trọng. 
+| Chỉ số đo lường (KPI) | Baseline (Kinh nghiệm thủ công) | Tối ưu hóa bằng AI (OR-Tools) | Hiệu quả chênh lệch |
+| :--- | :--- | :--- | :--- |
+| **Tổng Quãng Đường** | 524.21 km | **446.31 km** | Tiết kiệm 77.9 km |
+| **Số Lượng Xe Điều Động**| 22 chiếc | **18 chiếc** | Giảm 4 chuyến xe |
+| **Chi Phí Vận Hành** | ~1.887.156 VNĐ | **1.434.060 VNĐ** | **+453.096 VNĐ/chuyến** |
+| **Mức Độ Lấp Đầy (Utilization)**| - | **90%** | Khai thác tối đa tài sản |
+| **Tuân Thủ SLA** | - | **100%** | Đảm bảo chất lượng dịch vụ |
 
-Ngược lại, mô hình **HFVRP (OR-Tools)** với cơ chế "Buffer Fleet" kết hợp thuật giải `LOCAL_CHEAPEST_INSERTION` đã chứng minh năng lực gộp chuyến thông minh:
-* Tự động lựa chọn đúng số lượng xe tải trọng lớn ($Q=70$) để vét sạch kho hàng.
-* Cắt giảm trung bình **15% - 30%** quãng đường so với Baseline.
-* Tuân thủ 100% SLA cam kết với đại lý.
+### Phân tích nghiệp vụ (Business Insights):
+Sự chênh lệch khổng lồ về chi phí và số lượng xe (18 xe vs 22 xe) vạch trần điểm yếu chí mạng của phương pháp điều phối thủ công: **Nghịch lý Đóng thùng (Bin Packing Paradox)**. 
+Thuật toán kinh nghiệm có xu hướng "tham lam" gom các điểm gần nhau nhưng lại bỏ qua sự chênh lệch về sức chứa, dẫn đến tình trạng các xe bị lấp đầy lởm chởm, còn dư chỗ nhưng không đủ để lấy thêm vỏ ở trạm tiếp theo. 
+
+Ngược lại, mô hình AI đã giải quyết triệt để bài toán này bằng thuật giải `LOCAL_CHEAPEST_INSERTION` kết hợp với "Buffer Fleet". Nó chấp nhận đi xa hơn một chút để gom vừa khít 90% tải trọng của từng xe, qua đó cắt giảm được 4 chuyến xe dư thừa và mang lại biên độ lợi nhuận tiết kiệm lên tới **gần 24% chi phí** cho mỗi chu kỳ thu hồi.
 
 ---
-**Công nghệ sử dụng (Tech Stack):** `Python (Flask)`, `Google OR-Tools`, `NetworkX`, `Leaflet.js`, `OpenStreetMap API`.
+**Công nghệ sử dụng (Tech Stack):** `Python (Flask)`, `Google OR-Tools`, `NetworkX`, `JavaScript`, `Leaflet.js`, `OpenStreetMap API`., `Google OR-Tools`, `NetworkX`, `Leaflet.js`, `OpenStreetMap API`.
