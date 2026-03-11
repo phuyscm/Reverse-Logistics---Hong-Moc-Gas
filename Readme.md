@@ -97,7 +97,7 @@ Hệ thống cung cấp một bảng điều khiển (KPI Dashboard) trực quan
 
 <img width="417" height="602" alt="Screenshot 2026-03-10 073420" src="https://github.com/user-attachments/assets/0a73d61e-af09-4930-8439-06898de5c9b2" />
 
-*Báo cáo A/B Testing chứng minh sự vượt trội của mô hình Toán học so với Kinh nghiệm điều phối truyền thống.*
+
 
 ## 5. Kiểm Định Hiệu Suất (Validation & Testing)
 
