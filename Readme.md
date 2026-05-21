@@ -122,4 +122,4 @@ Thuật toán kinh nghiệm có xu hướng "tham lam" gom các điểm gần nh
 Ngược lại, mô hình AI đã giải quyết triệt để bài toán này bằng thuật giải `LOCAL_CHEAPEST_INSERTION` kết hợp với "Buffer Fleet". Nó chấp nhận đi xa hơn một chút để gom vừa khít 90% tải trọng của từng xe, qua đó cắt giảm được 4 chuyến xe dư thừa và mang lại biên độ lợi nhuận tiết kiệm lên tới **gần 24% chi phí** cho mỗi chu kỳ thu hồi.
 
 ---
-**Công nghệ sử dụng (Tech Stack):** `Python (Flask)`, `Google OR-Tools`, `NetworkX`, `JavaScript`, `Leaflet.js`, `OpenStreetMap API`., `Google OR-Tools`, `NetworkX`, `Leaflet.js`, `OpenStreetMap API`.
+**Công nghệ sử dụng (Tech Stack):** `Python (Flask)`, `Google OR-Tools`,`OpenStreetMap API`., `Google OR-Tools`, `NetworkX`, `Leaflet.js`, `OpenStreetMap API`.
